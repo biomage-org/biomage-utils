@@ -53,7 +53,7 @@ RDSHOST="$(aws rds describe-db-cluster-endpoints \
 	| tr -d '"')"
 
 INSTANCE_DATA=$(aws ec2 describe-instances \
-	--filters "Name=tag:Name,Values=rds-$ENVIRONMENT-ssm-agent" \
+	--filters Name=tag:Name,Values=rds-$ENVIRONMENT-ssm-agent Name=instance-state-name,Values=running \
 	--output json \
 	--query "Reservations[*].Instances[*].{InstanceId:InstanceId, AvailabilityZone:Placement.AvailabilityZone}" \
 	--profile $AWS_PROFILE)
@@ -70,9 +70,9 @@ tmp_socket_prefix=tmp-$RANDOM
 
 ssh-keygen -t rsa -f $tmp_socket_prefix -N ''
 
-AWS_PAGER="" aws ec2-instance-connect send-ssh-public-key --instance-id $INSTANCE_ID --availability-zone $AVAILABILITY_ZONE --instance-os-user ssm-user --ssh-public-key file://$tmp_socket_prefix.pub --profile $AWS_PROFILE
+AWS_PAGER="" aws ec2-instance-connect send-ssh-public-key --instance-id $INSTANCE_ID --availability-zone $AVAILABILITY_ZONE --instance-os-user ec2-user --ssh-public-key file://$tmp_socket_prefix.pub --profile $AWS_PROFILE
 
-ssh -i $tmp_socket_prefix -N -f -M -S $tmp_socket_prefix-ssh.sock -L "$LOCAL_PORT:${RDSHOST}:5432" "ssm-user@${INSTANCE_ID}" -o "IdentitiesOnly yes" -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" -o ProxyCommand="aws ssm start-session --target %h --region ${REGION} --profile ${AWS_PROFILE} --document-name AWS-StartSSHSession --parameters portNumber=%p"
+ssh -i $tmp_socket_prefix -N -f -M -S $tmp_socket_prefix-ssh.sock -L "$LOCAL_PORT:${RDSHOST}:5432" "ec2-user@${INSTANCE_ID}" -o "IdentitiesOnly yes" -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" -o ProxyCommand="aws ssm start-session --target %h --region ${REGION} --profile ${AWS_PROFILE} --document-name AWS-StartSSHSession --parameters portNumber=%p"
 
 echo "Finished setting up, run \"biomage rds run psql -i $ENVIRONMENT -s $SANDBOX_ID -r $REGION -p $AWS_PROFILE\" in a different tab"
 echo
