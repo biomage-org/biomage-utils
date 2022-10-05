@@ -6,9 +6,16 @@ import boto3
 import click
 
 from ..rds.run import run_rds_command
-from ..utils.constants import (CELLSETS_BUCKET, DEFAULT_AWS_PROFILE,
-                               FILTERED_CELLS_BUCKET, PROCESSED_FILES_BUCKET,
-                               RAW_FILES_BUCKET, SAMPLES_BUCKET, STAGING)
+from ..utils.constants import (
+    DEFAULT_AWS_PROFILE,
+    SAMPLES_BUCKET,
+    RAW_FILES_BUCKET,
+    PROCESSED_FILES_BUCKET,    
+    CELLSETS_BUCKET,
+    FILTERED_CELLS_BUCKET,
+    DEBUG_BUCKET,
+    STAGING,
+)
 
 SAMPLES = "samples"
 RAW_FILE = "raw_rds"
@@ -16,6 +23,7 @@ PROCESSED_FILE = "processed_rds"
 FILTERED_CELLS = "filtered_cells"
 CELLSETS = "cellsets"
 SAMPLE_MAPPING = "sample_mapping"
+DEBUG = "debug"
 
 SANDBOX_ID = "default"
 REGION = "eu-west-1"
@@ -28,6 +36,7 @@ file_type_to_name_map = {
 }
 
 DATA_LOCATION = os.getenv("BIOMAGE_DATA_PATH", "./data")
+DEBUG_LOCATION = Path(DATA_LOCATION) / "debug"
 
 # Copied from https://stackoverflow.com/a/62945526
 def _download_folder(bucket_name, s3_path, local_folder_path, boto3_session):
@@ -333,6 +342,29 @@ def _download_cellsets(
     click.echo(click.style("Cellsets file have been downloaded.", fg="green"))
 
 
+def _download_debug(
+    experiment_id, input_env, output_path, boto3_session, aws_account_id
+):
+
+    bucket_name = f"{DEBUG_BUCKET}-{input_env}-{aws_account_id}"
+    key = experiment_id
+
+    s3 = boto3_session.resource("s3")
+
+    bucket = s3.Bucket(bucket_name)
+    objs = list(bucket.objects.filter(Prefix=key))
+    for obj in objs:
+
+        local_path = DEBUG_LOCATION / Path(obj.key)
+
+        print(local_path)
+
+        # replicate S3 folder structure
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+
+        bucket.download_file(obj.key, str(local_path))
+
+
 @click.command()
 @click.option(
     "-e",
@@ -510,3 +542,9 @@ def download(
         elif file == SAMPLE_MAPPING:
             print("\n== Download sample mapping file")
             _download_sample_mapping(experiment_id, input_env, output_path, aws_profile)
+
+        elif file == DEBUG:
+            print("\n== Download debug folder")
+            _download_debug(
+                experiment_id, input_env, output_path, boto3_session, aws_account_id
+            )
