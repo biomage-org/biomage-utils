@@ -206,7 +206,7 @@ def get_branch_ref(chart, token, repo_to_ref=None, return_sha=False):
     raise Exception("Invalid repository supplied.")
 
 
-def get_sandbox_id(templates, manifests, org, auto=False):
+def get_sandbox_id(templates, manifests, org, name, auto=False):
     # Generate a sandbox name and ask the user what they want theirs to be called.
     manifest_hash = hashlib.md5(manifests.encode()).digest()
     manifest_hash = anybase32.encode(manifest_hash, anybase32.ZBASE32).decode()
@@ -223,7 +223,11 @@ def get_sandbox_id(templates, manifests, org, auto=False):
         user_name,
         pr_ids if pr_ids else manifest_hash,
     )
+
     sandbox_id = "-".join([bit for bit in fragments if bit]).lower()[:26]
+
+    if name:
+        sandbox_id = name
 
     if auto:
         return sandbox_id
@@ -269,7 +273,7 @@ def get_sandbox_id(templates, manifests, org, auto=False):
         return sandbox_id
 
 
-def create_manifest(templates, token, org, repo_to_ref, auto=False, with_rds=False):
+def create_manifest(templates, token, org, repo_to_ref, name=None, auto=False, with_rds=False):
 
     # autopin the repos on the default branch
     if auto:
@@ -324,7 +328,7 @@ def create_manifest(templates, token, org, repo_to_ref, auto=False, with_rds=Fal
     manifests = get_manifests(templates, pins, token, repo_to_ref)
 
     # Write sandbox ID
-    sandbox_id = get_sandbox_id(templates, manifests, org, auto=auto)
+    sandbox_id = get_sandbox_id(templates, manifests, org, name, auto)
 
     # Decide the RDS cluster ID
     rds_sandbox_id = sandbox_id if with_rds else "default"
@@ -370,7 +374,13 @@ def create_manifest(templates, token, org, repo_to_ref, auto=False, with_rds=Fal
     " user input. It will pin the default branches, generate a random name for"
     " the sandbox, and will not stage any experiment data.",
 )
-def stage(token, org, deployments, with_rds, auto):
+@click.option(
+    "--name",
+    default=None,
+    show_default=True,
+    help="Short cut to modify sandbox id name when --auto flag is set to True.",
+)
+def stage(token, org, deployments, with_rds, auto, name):
     """
     Deploys a custom staging environment.
     """
@@ -383,8 +393,9 @@ def stage(token, org, deployments, with_rds, auto):
         token,
         org,
         repo_to_ref,
-        auto=auto,
-        with_rds=with_rds,
+        name,
+        auto,
+        with_rds,
     )
 
     click.echo()
