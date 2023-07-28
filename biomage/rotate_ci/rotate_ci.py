@@ -264,10 +264,10 @@ def exclude_iac_from_rotation(repos, org_name):
 )
 def rotate_ci(token, org):
     """
-    Rotates and updates access credentials for every repository that 
+    Rotates and updates access credentials for every repository that
     isn't called iac (iac neds to be done manually).
 
-    Credentials updated include: 
+    Credentials updated include:
     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_TOKEN_GITHUB, AWS_REGION
     """
 
