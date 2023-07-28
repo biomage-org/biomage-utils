@@ -164,6 +164,7 @@ def update_github_secrets(keys, token, org):
         access_key_id = encrypt(ci_keys["key"], access_key_id)
         secret_access_key = encrypt(ci_keys["key"], secret_access_key)
         encrypted_token = encrypt(ci_keys["key"], token)
+        aws_region = encrypt(ci_keys["key"], "eu-west-1")
 
         r = s.put(
             f"{url_base}/{repo_name}/actions/secrets/AWS_ACCESS_KEY_ID",
@@ -178,6 +179,11 @@ def update_github_secrets(keys, token, org):
         r = s.put(
             f"{url_base}/{repo_name}/actions/secrets/API_TOKEN_GITHUB",
             json={"encrypted_value": encrypted_token, "key_id": ci_keys["key_id"]},
+        )
+
+        r = s.put(
+            f"{url_base}/{repo_name}/actions/secrets/AWS_REGION",
+            json={"encrypted_value": aws_region, "key_id": ci_keys["key_id"]},
         )
 
         results[repo_name] = r.status_code
@@ -258,7 +264,9 @@ def exclude_iac_from_rotation(repos, org_name):
 )
 def rotate_ci(token, org):
     """
-    Rotates and updates repository access credentials.
+        Rotates and updates access credentials for every repository that isn't called iac (iac neds to be done manually).
+
+        Credentials updated include: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, API_TOKEN_GITHUB, AWS_REGION
     """
 
     click.echo("Logging into GitHub and getting all repositories...")

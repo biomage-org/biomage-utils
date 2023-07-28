@@ -64,7 +64,7 @@ def _upload_raw_rds_files(
     if without_tunnel:
         print(
             """IMPORTANT: rds tunnel disabled, local folder is expected to have the
-            structure <experiment_id>/<sample_id>/r.rds"""
+            structure <experiment_id>/raw/<sample_id>/r.rds"""
         )
         for root, dirs, files in os.walk(local_folder_path):
             for file_name in files:
