@@ -300,6 +300,7 @@ def rotate_ci(token, org):
             default=False,
         )
     ]
+    
     click.echo()
     answer = prompt(questions, theme=GreenPassion())
     if not answer["create"]:
